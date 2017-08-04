@@ -25,6 +25,7 @@ var Writer = function(dir, algo, init) {
   this._ws = null
   this._directory = dir
   this._digest = crypto.createHash(algo)
+  this._digest.algo = algo
   this._init = init
 
   stream.Writable.call(this)
@@ -34,7 +35,7 @@ util.inherits(Writer, stream.Writable)
 
 Writer.prototype._flush = function(cb) {
   var self = this
-  var hash = this.key = this._digest.digest('hex')
+  var hash = this.key = this._digest.digest('hex') + '.' + this._digest.algo
   var dir = path.join(this._directory, hash.slice(0, 2))
 
   self._ws.end(function() {

@@ -10,9 +10,15 @@ var blobs = require('./')
 var blobPath = path.join((os.tmpdir || os.tmpDir)(), 'fs-blob-store-tests')
 
 var common = {
-  setup: function(t, cb) {
+  setup: function(t, algo, cb) {
+    if (cb === undefined && typeof algo === 'function') {
+      cb = algo
+      algo = undefined
+    }
     rimraf(blobPath, function() {
-      var store = blobs({path: blobPath})
+      var storeOpts = { path: blobPath }
+      if (algo) storeOpts.algo = algo
+      var store = blobs(storeOpts)
       cb(null, store)
     })
   },
@@ -83,3 +89,44 @@ test('resolve blob', function(t) {
     })
   })
 })
+
+test('check metadata', function(t) {
+  common.setup(t, function(err, store) {
+    var w = store.createWriteStream(done)
+    w.write('hello')
+    w.write('world')
+    w.end()
+
+    function done (err, meta) {
+      t.error(err)
+      t.deepEquals(meta, {
+        key: '936a185caaa266bb9cbe981e9e05cb78cd732b0b3280eb944412bb6f8f8f07af.sha256',
+        size: 10
+      })
+      common.teardown(t, null, null, function(err) {
+        t.end()
+      })
+    }
+  })
+})
+
+test('alternate algo', function(t) {
+  common.setup(t, 'sha512', function(err, store) {
+    var w = store.createWriteStream(done)
+    w.write('hello')
+    w.write('world')
+    w.end()
+
+    function done (err, meta) {
+      t.error(err)
+      t.deepEquals(meta, {
+        key: '1594244d52f2d8c12b142bb61f47bc2eaf503d6d9ca8480cae9fcf112f66e4967dc5e8fa98285e36db8af1b8ffa8b84cb15e0fbcf836c3deb803c13f37659a60.sha512',
+        size: 10
+      })
+      common.teardown(t, null, null, function(err) {
+        t.end()
+      })
+    }
+  })
+})
+
